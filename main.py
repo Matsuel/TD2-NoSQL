@@ -1,5 +1,9 @@
 from flask import Flask, jsonify, request
+from py2neo import Relationship, Node
 from models.utilisateur import Utilisateur
+from models.post import Post
+from database.config import connect_to_neo4j
+
 app = Flask(__name__)
 
 
@@ -38,6 +42,69 @@ def update_user(user_id):
         Utilisateur.update_user(user_id, name=data['name'], email=data['email'])
         return jsonify({"message": "User updated successfully"})
     return jsonify({"message": "User not found"}), 404
+
+@app.route('/posts', methods=['GET'])
+def get_posts():
+    posts = Post.get_all()
+    return jsonify(posts)
+
+@app.route('/users/<int:user_id>/posts', methods=['POST'])
+def create_post(user_id):
+    data = request.get_json()
+    new_post = Post(title=data['title'], content=data['content'])
+    post_node = new_post.save()
+    user = Utilisateur.get_by_id_as_node(user_id)
+    print(user)
+    print(user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    # Assuming you want to create a relationship between the post and the user
+    relationship = Relationship(user, "CREATED", post_node)
+    graph = connect_to_neo4j()
+    graph.create(relationship)
+    return jsonify({"message": "Post created successfully"}), 201
+
+@app.route('/posts/<int:post_id>', methods=['GET'])
+def get_post(post_id):
+    post = Post.get_by_id(post_id)
+    if post:
+        return jsonify(post)
+    return jsonify({"message": "Post not found"}), 404
+
+@app.route('/users/<int:user_id>/posts', methods=['GET'])
+def get_user_posts(user_id):
+    # Récupérer l'utilisateur en tant que Node
+    user_node = Utilisateur.get_by_id_as_node(user_id)
+    if not user_node:
+        return jsonify({"message": "User not found"}), 404
+
+    # Requête pour récupérer les posts liés à l'utilisateur via la relation CREATED
+    graph = connect_to_neo4j()
+    query = """
+    MATCH (u:Utilisateur)-[:CREATED]->(p:Post)
+    WHERE id(u) = $user_id
+    RETURN id(p) AS id, p.title AS title, p.content AS content, p.created_at AS created_at
+    """
+    posts = graph.run(query, user_id=user_id).data()
+
+    return jsonify(posts)
+
+@app.route('/posts/<int:post_id>', methods=['PUT'])
+def update_post(post_id):
+    data = request.get_json()
+    post = Post.get_by_id(post_id)
+    if post:
+        Post.update_post(post_id, title=data['title'], content=data['content'])
+        return jsonify({"message": "Post updated successfully"})
+    return jsonify({"message": "Post not found"}), 404
+
+@app.route('/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    post = Post.get_by_id(post_id)
+    if post:
+        Post.delete_post(post)
+        return jsonify({"message": "Post deleted successfully"})
+    return jsonify({"message": "Post not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -39,6 +39,20 @@ class Utilisateur:
         return result[0] if result else None
     
     @staticmethod
+    def get_by_id_as_node(user_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:Utilisateur)
+        WHERE id(u) = $user_id
+        RETURN u
+        """
+        result = graph.run(query, user_id=user_id).evaluate()
+        print(result)
+        print(type(result))
+        print(user_id)
+        return result
+    
+    @staticmethod
     def delete_user(user_id):
         graph = connect_to_neo4j()
         query = """
