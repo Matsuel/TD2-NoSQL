@@ -3,6 +3,7 @@ from py2neo import Relationship, Node
 from models.utilisateur import Utilisateur
 from models.post import Post
 from database.config import connect_to_neo4j
+from database.functions import create_relationship
 
 app = Flask(__name__)
 
@@ -54,14 +55,10 @@ def create_post(user_id):
     new_post = Post(title=data['title'], content=data['content'])
     post_node = new_post.save()
     user = Utilisateur.get_by_id_as_node(user_id)
-    print(user)
-    print(user_id)
     if not user:
         return jsonify({"message": "User not found"}), 404
     # Assuming you want to create a relationship between the post and the user
-    relationship = Relationship(user, "CREATED", post_node)
-    graph = connect_to_neo4j()
-    graph.create(relationship)
+    create_relationship(user, post_node, "CREATED")
     return jsonify({"message": "Post created successfully"}), 201
 
 @app.route('/posts/<int:post_id>', methods=['GET'])
@@ -102,9 +99,31 @@ def update_post(post_id):
 def delete_post(post_id):
     post = Post.get_by_id(post_id)
     if post:
-        Post.delete_post(post)
+        Post.delete_post(post_id)
         return jsonify({"message": "Post deleted successfully"})
     return jsonify({"message": "Post not found"}), 404
+
+@app.route('/posts/<int:post_id>/like', methods=['POST'])
+def like_post(post_id):
+    data = request.get_json()
+    user_id = data['user_id']
+    post = Post.get_by_id(post_id)
+    user = Utilisateur.get_by_id(user_id)
+    if post and user:
+        Post.like_post(post_id, user_id)
+        return jsonify({"message": "Post liked successfully"})
+    return jsonify({"message": "Post or User not found"}), 404
+
+@app.route('/posts/<int:post_id>/like', methods=['DELETE'])
+def unlike_post(post_id):
+    data = request.get_json()
+    user_id = data['user_id']
+    post = Post.get_by_id(post_id)
+    user = Utilisateur.get_by_id(user_id)
+    if post and user:
+        Post.unlike_post(post_id, user_id)
+        return jsonify({"message": "Post unliked successfully"})
+    return jsonify({"message": "Post or User not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

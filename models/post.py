@@ -48,6 +48,31 @@ class Post:
         graph.run(query, post_id=post_id, title=title, content=content)
         
     @staticmethod
-    def delete_post(post):
+    def delete_post(post_id):
         graph = connect_to_neo4j()
-        graph.delete(post)
+        query = """
+        MATCH (p:Post)
+        WHERE id(p) = $post_id
+        DETACH DELETE p
+        """
+        graph.run(query, post_id=post_id)
+        
+    @staticmethod
+    def like_post(post_id, user_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (p:Post), (u:Utilisateur)
+        WHERE id(p) = $post_id AND id(u) = $user_id
+        CREATE (u)-[:LIKES]->(p)
+        """
+        graph.run(query, post_id=post_id, user_id=user_id)
+        
+    @staticmethod
+    def unlike_post(post_id, user_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:Utilisateur)-[r:LIKES]->(p:Post)
+        WHERE id(p) = $post_id AND id(u) = $user_id
+        DELETE r
+        """
+        graph.run(query, post_id=post_id, user_id=user_id)
