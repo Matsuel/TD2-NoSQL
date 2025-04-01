@@ -47,3 +47,13 @@ class Utilisateur:
         DELETE u
         """
         graph.run(query, user_id=user_id)
+        
+    @staticmethod
+    def update_user(user_id, name=None, email=None):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:Utilisateur)
+        WHERE id(u) = $user_id
+        SET u.name = $name, u.email = $email
+        """
+        graph.run(query, user_id=user_id, name=name, email=email)

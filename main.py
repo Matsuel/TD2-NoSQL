@@ -30,5 +30,14 @@ def delete_user(user_id):
         return jsonify({"message": "User deleted successfully"})
     return jsonify({"message": "User not found"}), 404
 
+@app.route('/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    data = request.get_json()
+    user = Utilisateur.get_by_id(user_id)
+    if user:
+        Utilisateur.update_user(user_id, name=data['name'], email=data['email'])
+        return jsonify({"message": "User updated successfully"})
+    return jsonify({"message": "User not found"}), 404
+
 if __name__ == '__main__':
     app.run(debug=True)
