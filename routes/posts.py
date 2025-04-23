@@ -29,7 +29,7 @@ def get_user_posts(user_id):
     # Requête pour récupérer les posts liés à l'utilisateur via la relation CREATED
     graph = connect_to_neo4j()
     query = """
-    MATCH (u:Utilisateur)-[:CREATED]->(p:Post)
+    MATCH (u:User)-[:CREATED]->(p:Post)
     WHERE id(u) = $user_id
     RETURN id(p) AS id, p.title AS title, p.content AS content, p.created_at AS created_at
     """

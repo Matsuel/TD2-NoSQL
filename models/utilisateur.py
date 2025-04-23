@@ -9,20 +9,20 @@ class Utilisateur:
         self.created_at = str(datetime.now())
         
     def save(self):
-        utilisateur_node = Node("Utilisateur",
+        utilisateur_node = Node("User",
                                 name=self.name,
                                 email=self.email,
                                 created_at=self.created_at)
         
         graph = connect_to_neo4j()
-        graph.merge(utilisateur_node, "Utilisateur", "email")
+        graph.merge(utilisateur_node, "User", "email")
         return utilisateur_node
     
     @staticmethod
     def get_all():
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)
+        MATCH (u:User)
         RETURN id(u) AS id, u.name AS name, u.email AS email, u.created_at AS created_at
         """
         return graph.run(query).data()
@@ -31,7 +31,7 @@ class Utilisateur:
     def get_by_id(user_id):
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)
+        MATCH (u:User)
         WHERE id(u) = $user_id
         RETURN id(u) AS id, u.name AS name, u.email AS email, u.created_at AS created_at
         """
@@ -42,7 +42,7 @@ class Utilisateur:
     def get_by_id_as_node(user_id):
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)
+        MATCH (u:User)
         WHERE id(u) = $user_id
         RETURN u
         """
@@ -56,7 +56,7 @@ class Utilisateur:
     def delete_user(user_id):
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)
+        MATCH (u:User)
         WHERE id(u) = $user_id
         DELETE u
         """
@@ -66,7 +66,7 @@ class Utilisateur:
     def update_user(user_id, name=None, email=None):
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)
+        MATCH (u:User)
         WHERE id(u) = $user_id
         SET u.name = $name, u.email = $email
         """

@@ -61,7 +61,7 @@ class Post:
     def like_post(post_id, user_id):
         graph = connect_to_neo4j()
         query = """
-        MATCH (p:Post), (u:Utilisateur)
+        MATCH (p:Post), (u:User)
         WHERE id(p) = $post_id AND id(u) = $user_id
         CREATE (u)-[:LIKES]->(p)
         """
@@ -71,7 +71,7 @@ class Post:
     def unlike_post(post_id, user_id):
         graph = connect_to_neo4j()
         query = """
-        MATCH (u:Utilisateur)-[r:LIKES]->(p:Post)
+        MATCH (u:User)-[r:LIKES]->(p:Post)
         WHERE id(p) = $post_id AND id(u) = $user_id
         DELETE r
         """
