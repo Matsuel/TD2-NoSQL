@@ -40,8 +40,30 @@ def delete_user(user_id):
         return jsonify({"message": "User deleted successfully"})
     return jsonify({"message": "User not found"}), 404
 
-# GET /users/:id/friends : Récupérer la liste des amis d'un utilisateur
-# POST /users/:id/friends : Ajouter un ami (ID de l'ami dans le body)
-# DELETE /users/:id/friends/:friendId : Supprimer un ami
-# GET /users/:id/friends/:friendId : Vérifier si deux utilisateurs sont amis
-# GET /users/:id/mutual-friends/:otherId : Récupérer les amis en commun
+@users_bp.route('/users/<int:user_id>/friends', methods=['GET'])
+def get_friends(user_id):
+    friends = Utilisateur.get_friends(user_id)
+    return jsonify(friends)
+
+@users_bp.route('/users/<int:user_id>/friends', methods=['POST'])
+def add_friend(user_id):
+    data = request.get_json()
+    friend_id = data['friend_id']
+    Utilisateur.add_friend(user_id, friend_id)
+    return jsonify({"message": "Friend added successfully"})
+
+@users_bp.route('/users/<int:user_id>/friends/<int:friendId>', methods=['DELETE'])
+def delete_friend(user_id, friendId):
+    Utilisateur.delete_friend(user_id, friendId)
+    return jsonify({"message": "Friend deleted successfully"})
+
+@users_bp.route('/users/<int:user_id>/friends/<int:friendId>', methods=['GET'])
+def is_friend(user_id, friendId):
+    is_friend1 = Utilisateur.is_friend(user_id, friendId)
+    is_friend2 = Utilisateur.is_friend(friendId, user_id)
+    return jsonify({"is_friend": is_friend1 and is_friend2})
+
+@users_bp.route('/users/<int:user_id>/mutual-friends/<int:otherId>', methods=['GET'])
+def get_mutual_friends(user_id, otherId):
+    mutual_friends = Utilisateur.get_mutual_friends(user_id, otherId)
+    return jsonify(mutual_friends)

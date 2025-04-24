@@ -71,3 +71,58 @@ class Utilisateur:
         SET u.name = $name, u.email = $email
         """
         graph.run(query, user_id=user_id, name=name, email=email)
+        
+    @staticmethod
+    def get_friends(user_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:User)-[:FRIENDS_WITH]->(f:User)
+        WHERE id(u) = $user_id
+        RETURN id(f) AS id, f.name AS name, f.email AS email
+        """
+        return graph.run(query, user_id=user_id).data()
+    
+    @staticmethod
+    def add_friend(user_id, friend_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:User)
+        WHERE id(u) = $user_id
+        MATCH (f:User)
+        WHERE id(f) = $friend_id
+        CREATE (u)-[:FRIENDS_WITH]->(f)
+        """
+        graph.run(query, user_id=user_id, friend_id=friend_id)
+        
+    @staticmethod
+    def delete_friend(user_id, friend_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:User)-[r:FRIENDS_WITH]->(f:User)
+        WHERE id(u) = $user_id AND id(f) = $friend_id
+        DELETE r
+        """
+        graph.run(query, user_id=user_id, friend_id=friend_id)
+        
+    @staticmethod
+    def is_friend(user_id, friend_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:User)-[r:FRIENDS_WITH]->(f:User)
+        WHERE id(u) = $user_id AND id(f) = $friend_id
+        RETURN count(r) > 0 AS is_friend
+        """
+        result = graph.run(query, user_id=user_id, friend_id=friend_id).data()
+        return result[0]['is_friend'] if result else False
+    
+    @staticmethod
+    def get_mutual_friends(user_id, other_id):
+        graph = connect_to_neo4j()
+        query = """
+        MATCH (u:User)-[:FRIENDS_WITH]->(f:User)-[:FRIENDS_WITH]->(o:User)
+        WHERE id(u) = $user_id AND id(o) = $other_id
+        RETURN id(f) AS id, f.name AS name
+        """
+        return graph.run(query, user_id=user_id, other_id=other_id).data()
+    
+    
