@@ -1,68 +1,90 @@
 from flask import Blueprint, jsonify, request
 from models.post import Post
-from database.config import connect_to_neo4j
-from database.functions import create_relationship
-from models.utilisateur import Utilisateur
+from py2neo import Graph, Relationship
+from constantes.node import NodeEnum
+from constantes.relation import RelationEnum
 
 posts_bp = Blueprint('posts', __name__)
 
+graph = Graph("bolt://localhost:7687", auth=("neo4j", "password"))
+
 @posts_bp.route('/posts', methods=['GET'])
 def get_posts():
-    posts = Post.get_all()
-    return jsonify(posts)
+    posts = graph.nodes.match(NodeEnum.Post.value).all()
+    posts_list = []
+    for post in posts:
+        post_data = {
+            "id": post.identity,
+            "title": post["title"],
+            "content": post["content"],
+            "created_at": post["created_at"]
+        }
+        posts_list.append(post_data)
+    return jsonify(posts_list)
 
 
 @posts_bp.route('/posts/<int:post_id>', methods=['GET'])
 def get_post(post_id):
-    post = Post.get_by_id(post_id)
+    post = graph.nodes.get(post_id)
     if post:
-        return jsonify(post)
+        post_data = {
+            "id": post.identity,
+            "title": post["title"],
+            "content": post["content"],
+            "created_at": post["created_at"]
+        }
+        return jsonify(post_data)
     return jsonify({"message": "Post not found"}), 404
 
 @posts_bp.route('/users/<int:user_id>/posts', methods=['GET'])
 def get_user_posts(user_id):
-    # Récupérer l'utilisateur en tant que Node
-    user_node = Utilisateur.get_by_id_as_node(user_id)
-    if not user_node:
-        return jsonify({"message": "User not found"}), 404
-
-    # Requête pour récupérer les posts liés à l'utilisateur via la relation CREATED
-    graph = connect_to_neo4j()
-    query = """
-    MATCH (u:User)-[:CREATED]->(p:Post)
-    WHERE id(u) = $user_id
-    RETURN id(p) AS id, p.title AS title, p.content AS content, p.created_at AS created_at
-    """
-    posts = graph.run(query, user_id=user_id).data()
-
-    return jsonify(posts)
+    user = graph.nodes.get(user_id)
+    if user:
+        posts = graph.match((user, None), r_type=RelationEnum.Created.value).all()
+        posts_list = []
+        for post in posts:
+            post_data = {
+                "id": post.end_node.identity,
+                "title": post.end_node["title"],
+                "content": post.end_node["content"],
+                "created_at": post.end_node["created_at"]
+            }
+            posts_list.append(post_data)
+        return jsonify(posts_list)
+    return jsonify({"message": "User not found"}), 404
 
 @posts_bp.route('/users/<int:user_id>/posts', methods=['POST'])
 def create_post(user_id):
     data = request.get_json()
-    new_post = Post(title=data['title'], content=data['content'])
-    post_node = new_post.save()
-    user = Utilisateur.get_by_id_as_node(user_id)
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-    # Assuming you want to create a relationship between the post and the user
-    create_relationship(user, post_node, "CREATED")
-    return jsonify({"message": "Post created successfully"}), 201
+    title = data['title']
+    content = data['content']
+    user = graph.nodes.get(user_id)
+    if user:
+        post = Post(title=title, content=content, graph=graph)
+        post_node = post.create_post()
+        created_relation = Relationship(user, RelationEnum.Created.value, post_node)
+        graph.create(created_relation)
+        return jsonify({"message": "Post created successfully"}), 201
+    return jsonify({"message": "User not found"}), 404
 
 @posts_bp.route('/posts/<int:post_id>', methods=['PUT'])
 def update_post(post_id):
     data = request.get_json()
-    post = Post.get_by_id(post_id)
+    title = data['title']
+    content = data['content']
+    post = graph.nodes.get(post_id)
     if post:
-        Post.update_post(post_id, title=data['title'], content=data['content'])
+        post["title"] = title
+        post["content"] = content
+        graph.push(post)
         return jsonify({"message": "Post updated successfully"})
     return jsonify({"message": "Post not found"}), 404
 
 @posts_bp.route('/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
-    post = Post.get_by_id(post_id)
+    post = graph.nodes.get(post_id)
     if post:
-        Post.delete_post(post_id)
+        graph.delete(post)
         return jsonify({"message": "Post deleted successfully"})
     return jsonify({"message": "Post not found"}), 404
 
@@ -70,20 +92,24 @@ def delete_post(post_id):
 def like_post(post_id):
     data = request.get_json()
     user_id = data['user_id']
-    post = Post.get_by_id(post_id)
-    user = Utilisateur.get_by_id(user_id)
+    post = graph.nodes.get(post_id)
+    user = graph.nodes.get(user_id)
     if post and user:
-        Post.like_post(post_id, user_id)
-        return jsonify({"message": "Post liked successfully"})
+        like_relation = Relationship(user, RelationEnum.Likes.value, post)
+        graph.create(like_relation)
+        return jsonify({"message": "Post liked successfully"}), 201
     return jsonify({"message": "Post or User not found"}), 404
 
 @posts_bp.route('/posts/<int:post_id>/like', methods=['DELETE'])
 def unlike_post(post_id):
     data = request.get_json()
     user_id = data['user_id']
-    post = Post.get_by_id(post_id)
-    user = Utilisateur.get_by_id(user_id)
+    post = graph.nodes.get(post_id)
+    user = graph.nodes.get(user_id)
     if post and user:
-        Post.unlike_post(post_id, user_id)
-        return jsonify({"message": "Post unliked successfully"})
+        like_relation = graph.match_one((user, post), r_type=RelationEnum.Likes.value)
+        if like_relation is not None:
+            graph.separate(like_relation)
+            return jsonify({"message": "Post unliked successfully"}), 200
+        return jsonify({"message": "Like relation not found"}), 404
     return jsonify({"message": "Post or User not found"}), 404
