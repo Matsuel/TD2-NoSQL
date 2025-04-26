@@ -4,6 +4,8 @@ from py2neo import Relationship
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
+from utils.relations import create_relation, delete_relation
+from utils.node import node_exists
 
 posts_bp = Blueprint('posts', __name__)
 
@@ -24,7 +26,7 @@ def get_posts():
 
 @posts_bp.route('/posts/<int:post_id>', methods=['GET'])
 def get_post(post_id):
-    post = graph.nodes.get(post_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
         post_data = {
             "id": post.identity,
@@ -37,7 +39,7 @@ def get_post(post_id):
 
 @posts_bp.route('/users/<int:user_id>/posts', methods=['GET'])
 def get_user_posts(user_id):
-    user = graph.nodes.get(user_id)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if user:
         posts = graph.match((user, None), r_type=RelationEnum.Created.value).all()
         posts_list = []
@@ -57,7 +59,7 @@ def create_post(user_id):
     data = request.get_json()
     title = data['title']
     content = data['content']
-    user = graph.nodes.get(user_id)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if user:
         post = Post(title=title, content=content, graph=graph)
         post_node = post.create_post()
@@ -71,7 +73,7 @@ def update_post(post_id):
     data = request.get_json()
     title = data['title']
     content = data['content']
-    post = graph.nodes.get(post_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
         post["title"] = title
         post["content"] = content
@@ -81,7 +83,7 @@ def update_post(post_id):
 
 @posts_bp.route('/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
-    post = graph.nodes.get(post_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
         graph.delete(post)
         return jsonify({"message": "Post deleted successfully"})
@@ -91,11 +93,10 @@ def delete_post(post_id):
 def like_post(post_id):
     data = request.get_json()
     user_id = data['user_id']
-    post = graph.nodes.get(post_id)
-    user = graph.nodes.get(user_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if post and user:
-        like_relation = Relationship(user, RelationEnum.Likes.value, post)
-        graph.create(like_relation)
+        create_relation(user, post, RelationEnum.Likes, graph)
         return jsonify({"message": "Post liked successfully"}), 201
     return jsonify({"message": "Post or User not found"}), 404
 
@@ -103,12 +104,10 @@ def like_post(post_id):
 def unlike_post(post_id):
     data = request.get_json()
     user_id = data['user_id']
-    post = graph.nodes.get(post_id)
-    user = graph.nodes.get(user_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if post and user:
-        like_relation = graph.match_one((user, post), r_type=RelationEnum.Likes.value)
-        if like_relation is not None:
-            graph.separate(like_relation)
+        if delete_relation(user, post, RelationEnum.Likes, graph):
             return jsonify({"message": "Post unliked successfully"}), 200
         return jsonify({"message": "Like relation not found"}), 404
     return jsonify({"message": "Post or User not found"}), 404
