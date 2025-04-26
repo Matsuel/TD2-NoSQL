@@ -19,3 +19,17 @@ def node_exists(graph: Graph, node_id: int, node_type: NodeEnum):
         print(f"Error checking node existence: {e}")
         return False
         
+def get_all_nodes(graph: Graph, node_type: NodeEnum):
+    """
+    Get all nodes of a specific type from the Neo4j database.
+
+    :param graph: The Neo4j graph object.
+    :param node_type: The type of the node (e.g., NodeEnum.Post).
+    :return: A list of nodes of the specified type.
+    """
+    try:
+        nodes = graph.nodes.match(node_type.value).all()
+        return nodes
+    except Exception as e:
+        print(f"Error getting all nodes: {e}")
+        return []

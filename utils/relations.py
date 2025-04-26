@@ -53,3 +53,36 @@ def delete_all_relations(node1, node2, graph: Graph):
     except Exception as e:
         print(f"Error deleting all relationships: {e}")
         return False
+    
+    
+def get_all_relations(node1, node2, relation_type: RelationEnum, graph: Graph):
+    """
+    Get all relationships of a node in the graph database.
+    
+    :param node1: The first node (source) to get the relationships from.
+    :param node2: The second node (target) to get the relationships to.
+    :param relation_type: The type of relationship to get.
+    :param graph: The graph database instance.
+    """
+    try:
+        relations = graph.match((node1, node2), r_type=relation_type.value).all()
+        return relations
+    except Exception as e:
+        print(f"Error getting all relationships: {e}")
+        return None
+    
+def get_one_relation(node1, node2, relation_type: RelationEnum, graph: Graph):
+    """
+    Get a specific relationship between two nodes in the graph database.
+    
+    :param node1: The first node (source) to get the relationship from.
+    :param node2: The second node (target) to get the relationship to.
+    :param relation_type: The type of relationship to get.
+    :param graph: The graph database instance.
+    """
+    try:
+        relation = graph.match((node1, node2), r_type=relation_type.value).first()
+        return relation
+    except Exception as e:
+        print(f"Error getting relationship: {e}")
+        return None

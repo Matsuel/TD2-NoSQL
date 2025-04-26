@@ -3,15 +3,15 @@ from models.post import Post
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
-from utils.relations import create_relation, delete_relation
-from utils.node import node_exists
+from utils.relations import create_relation, delete_relation, get_all_relations
+from utils.node import node_exists, get_all_nodes
 from utils.format import format_post
 
 posts_bp = Blueprint('posts', __name__)
 
 @posts_bp.route('/posts', methods=['GET'])
 def get_posts():
-    posts = graph.nodes.match(NodeEnum.Post.value).all()
+    posts = get_all_nodes(graph, NodeEnum.Post)
     posts_list = []
     for post in posts:
         posts_list.append(format_post(post))
@@ -29,7 +29,7 @@ def get_post(post_id):
 def get_user_posts(user_id):
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if user:
-        posts = graph.match((user, None), r_type=RelationEnum.Created.value).all()
+        posts = get_all_relations(user, None, RelationEnum.Created, graph)
         posts_list = []
         for post in posts:
             posts_list.append(format_post(post.end_node))

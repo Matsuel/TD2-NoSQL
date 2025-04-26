@@ -3,8 +3,8 @@ from models.commentaire import Commentaire
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
-from utils.node import node_exists
-from utils.relations import create_relation, delete_all_relations, delete_relation
+from utils.node import node_exists, get_all_nodes
+from utils.relations import create_relation, delete_all_relations, delete_relation, get_all_relations
 from utils.format import format_comment
 
 commentaires_bp = Blueprint('commentaires', __name__)
@@ -13,7 +13,7 @@ commentaires_bp = Blueprint('commentaires', __name__)
 def get_comments(post_id):
     post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
-        comments = graph.match((post, None), r_type=RelationEnum.HasComment.value).all()
+        comments = get_all_relations(post, None, RelationEnum.HasComment, graph)
         comments_list = []
         for comment in comments:
             comments_list.append(format_comment(comment.end_node))
@@ -47,7 +47,7 @@ def delete_post_comment(post_id, comment_id):
 
 @commentaires_bp.route('/comments', methods=['GET'])
 def get_all_comments():
-    comments = graph.nodes.match(NodeEnum.Commentaire.value).all()
+    comments = get_all_nodes(graph, NodeEnum.Commentaire)
     comments_list = []
     for comment in comments:
         comments_list.append(format_comment(comment))

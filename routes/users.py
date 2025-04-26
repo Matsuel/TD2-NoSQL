@@ -3,15 +3,15 @@ from models.utilisateur import Utilisateur
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
-from utils.node import node_exists
-from utils.relations import create_relation, delete_relation
+from utils.node import node_exists, get_all_nodes
+from utils.relations import create_relation, delete_relation, get_all_relations, get_one_relation
 from utils.format import format_user
 
 users_bp = Blueprint('users', __name__)
 
 @users_bp.route('/users', methods=['GET'])
 def get_users():
-    users = graph.nodes.match(NodeEnum.Utilisateur.value).all()
+    users = get_all_nodes(graph, NodeEnum.Utilisateur)
     users_list = []
     for user in users:
         users_list.append(format_user(user))
@@ -54,7 +54,7 @@ def delete_user(user_id):
 def get_friends(user_id):
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if user:
-        friends = graph.match((user,), r_type=RelationEnum.Friend.value).all()
+        friends = get_all_relations(user, None, RelationEnum.Friend, graph)
         friends_list = []
         for friend in friends:
             friends_list.append(format_user(friend.end_node))
@@ -89,8 +89,8 @@ def is_friend(user_id, friendId):
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     friend = node_exists(graph, friendId, NodeEnum.Utilisateur)
     if user and friend:
-        friend_relation1 = graph.match_one((user, friend), r_type=RelationEnum.Friend.value)
-        friend_relation2 = graph.match_one((friend, user), r_type=RelationEnum.Friend.value)
+        friend_relation1 = get_one_relation(user, friend, RelationEnum.Friend, graph)
+        friend_relation2 = get_one_relation(friend, user, RelationEnum.Friend, graph)
         if (friend_relation1 is not None) and (friend_relation2 is not None):
             return jsonify({"is_friend": True})
         return jsonify({"is_friend": False})
@@ -102,8 +102,8 @@ def get_mutual_friends(user_id, other_id):
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     other = node_exists(graph, other_id, NodeEnum.Utilisateur)
     if user and other:
-        user_friends = set(friend.end_node for friend in graph.match((user,), r_type=RelationEnum.Friend.value))
-        other_friends = set(friend.end_node for friend in graph.match((other,), r_type=RelationEnum.Friend.value))
+        user_friends = set(friend.end_node for friend in get_all_relations(user, None, RelationEnum.Friend, graph))
+        other_friends = set(friend.end_node for friend in get_all_relations(other, None, RelationEnum.Friend, graph))
         mutual_friends = user_friends & other_friends
-        return jsonify([{"id": friend.identity, "name": friend["name"]} for friend in mutual_friends])
+        return jsonify([format_user(friend) for friend in mutual_friends])
     return jsonify({"error": "User or other user not found"}), 404
