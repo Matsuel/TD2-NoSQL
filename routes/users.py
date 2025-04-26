@@ -91,9 +91,7 @@ def is_friend(user_id, friendId):
     if user and friend:
         friend_relation1 = get_one_relation(user, friend, RelationEnum.Friend, graph)
         friend_relation2 = get_one_relation(friend, user, RelationEnum.Friend, graph)
-        if (friend_relation1 is not None) and (friend_relation2 is not None):
-            return jsonify({"is_friend": True})
-        return jsonify({"is_friend": False})
+        return jsonify({"is_friend": (friend_relation1 is not None) and (friend_relation2 is not None)})
     return jsonify({"message": "User or Friend not found"}), 404
 
 @users_bp.route('/users/<int:user_id>/mutual-friends/<int:other_id>', methods=['GET'])
