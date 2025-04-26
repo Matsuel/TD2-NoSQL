@@ -36,3 +36,20 @@ def delete_relation(node1, node2, relation_type: RelationEnum, graph: Graph):
     except Exception as e:
         print(f"Error deleting relationship: {e}")
         return False
+    
+def delete_all_relations(node1, node2, graph: Graph):
+    """
+    Delete all relationships of a node in the graph database.
+    
+    :param node1: The first node (source) to delete the relationships from.
+    :param node2: The second node (target) to delete the relationships to.
+    :param graph: The graph database instance.
+    """
+    try:
+        relations = graph.match((node1, node2)).all()
+        for relation in relations:
+            graph.separate(relation)
+        return True
+    except Exception as e:
+        print(f"Error deleting all relationships: {e}")
+        return False

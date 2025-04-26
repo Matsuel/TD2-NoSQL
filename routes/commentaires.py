@@ -1,15 +1,16 @@
 from flask import Blueprint, request, jsonify
 from models.commentaire import Commentaire
-from py2neo import Relationship
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
+from utils.node import node_exists
+from utils.relations import create_relation, delete_all_relations, delete_relation
 
 commentaires_bp = Blueprint('commentaires', __name__)
 
 @commentaires_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
 def get_comments(post_id):
-    post = graph.nodes.get(post_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
         comments = graph.match((post, None), r_type=RelationEnum.HasComment.value).all()
         comments_list = []
@@ -28,24 +29,22 @@ def create_comment(post_id):
     data = request.get_json()
     content = data['content']
     user_id = data['user_id']
-    post = graph.nodes.get(post_id)
-    user = graph.nodes.get(user_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if post and user:
         comment = Commentaire(content, graph)
         comment_node = comment.create_comment()
-        graph.create(Relationship(user, RelationEnum.Created.value, comment_node))
-        graph.create(Relationship(post, RelationEnum.HasComment.value, comment_node))
+        create_relation(user, comment_node, RelationEnum.Created, graph)
+        create_relation(post, comment_node, RelationEnum.HasComment, graph)
         return jsonify({"message": "Comment created", "comment_id": comment_node.identity}), 201
     return jsonify({"message": "Post or user not found"}), 404
 
 @commentaires_bp.route('/posts/<int:post_id>/comments/<int:comment_id>', methods=['DELETE'])
 def delete_post_comment(post_id, comment_id):
-    post = graph.nodes.get(post_id)
-    comment = graph.nodes.get(comment_id)
+    post = node_exists(graph, post_id, NodeEnum.Post)
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
     if post and comment:
-        relations = graph.match((None, comment)).all()
-        for relation in relations:
-            graph.separate(relation)
+        delete_all_relations(None, comment, graph)
         graph.delete(comment)
         return jsonify({"message": "Comment deleted"}), 200
     return jsonify({"message": "Post or comment not found"}), 404
@@ -65,9 +64,8 @@ def get_all_comments():
 
 @commentaires_bp.route('/comments/<int:comment_id>', methods=['GET'])
 def get_comment(comment_id):
-    comment = graph.nodes.get(comment_id)
-
-    if comment and comment.labels == {NodeEnum.Commentaire.value}:
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
+    if comment:
         comment_data = {
             "id": comment.identity,
             "content": comment["content"],
@@ -80,8 +78,8 @@ def get_comment(comment_id):
 def update_comment(comment_id):
     data = request.get_json()
     content = data['content']
-    comment = graph.nodes.get(comment_id)
-    if comment and comment.labels == {NodeEnum.Commentaire.value}:
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
+    if comment:
         comment["content"] = content
         graph.push(comment)
         return jsonify({"message": "Comment updated successfully"}), 200
@@ -89,11 +87,9 @@ def update_comment(comment_id):
 
 @commentaires_bp.route('/comments/<int:comment_id>', methods=['DELETE'])
 def delete_comment(comment_id):
-    comment = graph.nodes.get(comment_id)
-    if comment and comment.labels == {NodeEnum.Commentaire.value}:
-        relations = graph.match((None, comment)).all()
-        for relation in relations:
-            graph.separate(relation)
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
+    if comment:
+        delete_all_relations(None, comment, graph)
         graph.delete(comment)
         return jsonify({"message": "Comment deleted successfully"}), 200
     return jsonify({"message": "Comment not found"}), 404
@@ -102,11 +98,10 @@ def delete_comment(comment_id):
 def like_comment(comment_id):
     data = request.get_json()
     user_id = data['user_id']
-    comment = graph.nodes.get(comment_id)
-    user = graph.nodes.get(user_id)
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if comment and user:
-        like_relation = Relationship(user, RelationEnum.Likes.value, comment)
-        graph.create(like_relation)
+        create_relation(user, comment, RelationEnum.Likes, graph)
         return jsonify({"message": "Comment liked successfully"}), 201
     return jsonify({"message": "Comment or user not found"}), 404  
 
@@ -114,12 +109,11 @@ def like_comment(comment_id):
 def unlike_comment(comment_id):
     data = request.get_json()
     user_id = data['user_id']
-    comment = graph.nodes.get(comment_id)
-    user = graph.nodes.get(user_id)
+    comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
+    user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if comment and user:
-        like_relation = graph.match_one((user, comment), r_type=RelationEnum.Likes.value)
+        like_relation = delete_relation(user, comment, RelationEnum.Likes, graph)
         if like_relation is not None:
-            graph.separate(like_relation)
             return jsonify({"message": "Comment unliked successfully"}), 200
         return jsonify({"message": "Like relation not found"}), 404
     return jsonify({"message": "Comment or user not found"}), 404     
