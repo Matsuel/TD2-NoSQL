@@ -98,7 +98,6 @@ def is_friend(user_id, friendId):
 
 @users_bp.route('/users/<int:user_id>/mutual-friends/<int:other_id>', methods=['GET'])
 def get_mutual_friends(user_id, other_id):
-    # TODO: Réparer
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     other = node_exists(graph, other_id, NodeEnum.Utilisateur)
     if user and other:
