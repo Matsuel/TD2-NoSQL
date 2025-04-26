@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request
 from models.post import Post
-from py2neo import Relationship
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
 from database.config import graph
@@ -63,8 +62,7 @@ def create_post(user_id):
     if user:
         post = Post(title=title, content=content, graph=graph)
         post_node = post.create_post()
-        created_relation = Relationship(user, RelationEnum.Created.value, post_node)
-        graph.create(created_relation)
+        create_relation(user, post_node, RelationEnum.Created, graph)
         return jsonify({"message": "Post created successfully"}), 201
     return jsonify({"message": "User not found"}), 404
 
