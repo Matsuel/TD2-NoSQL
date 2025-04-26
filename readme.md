@@ -34,8 +34,40 @@ python main.py
 
 ### 4. Testez l'application :
 Utiliser la collection Postman pour tester les différentes routes de l'API
-
 [Postman Collection](./TD2.postman_collection.json)
+
+### 5. Routes disponibles :
+#### Utilisateurs:
+- Créer un utilisateur : POST /users
+- Récupérer tous les utilisateurs : GET /users
+- Récupérer un utilisateur par ID : GET /users/<user_id>
+- Mettre à jour un utilisateur : PUT /users/<user_id>
+- Supprimer un utilisateur : DELETE /users/<user_id>
+- Gérer les amis :
+    - Ajouter un ami : POST /users/<user_id>/friends
+    - Supprimer un ami : DELETE /users/<user_id>/friends/<friend_id>
+    - Vérifier une amitié : GET /users/<user_id>/friends/<friend_id>
+    - Récupérer les amis communs : GET /users/<user_id>/mutual-friends/<other_id>
+
+#### Posts:
+- Créer un post : POST /users/<user_id>/posts
+- Récupérer tous les posts : GET /posts
+- Récupérer un post par ID : GET /posts/<post_id>
+- Mettre à jour un post : PUT /posts/<post_id>
+- Supprimer un post : DELETE /posts/<post_id>
+- Gérer les likes :
+    - Liker un post : POST /posts/<post_id>/like
+    - Retirer un like : DELETE /posts/<post_id>/like
+
+#### Commentaires:
+- Créer un commentaire : POST /posts/<post_id>/comments
+- Récupérer tous les commentaires d'un post : GET /posts/<post_id>/comments
+- Récupérer un commentaire par ID : GET /comments/<comment_id>
+- Mettre à jour un commentaire : PUT /comments/<comment_id>
+- Supprimer un commentaire : DELETE /comments/<comment_id>
+- Gérer les likes :
+    - Liker un commentaire : POST /comments/<comment_id>/like
+    - Retirer un like : DELETE /comments/<comment_id>/like
 
 ### 5. Accédez à l'interface utilisateur :
 Ouvrez votre navigateur et accédez à `http://localhost:7474` pour accéder à l'interface de Neo4j Browser.
@@ -49,7 +81,6 @@ Ouvrez votre navigateur et accédez à `http://localhost:7474` pour accéder à 
 │   ├── [relation.py]    # Définitions des types de relations
 ├── database/
 │   ├── [config.py]      # Configuration de la connexion à Neo4j
-│   ├── [functions.py]    # Fonctions utilitaires pour Neo4j
 ├── models/
 │   ├── [utilisateur.py]   # Modèle pour les utilisateurs
 │   ├── [post.py]         # Modèle pour les posts
