@@ -5,6 +5,7 @@ from constantes.relation import RelationEnum
 from database.config import graph
 from utils.node import node_exists
 from utils.relations import create_relation, delete_all_relations, delete_relation
+from utils.format import format_comment
 
 commentaires_bp = Blueprint('commentaires', __name__)
 
@@ -15,12 +16,7 @@ def get_comments(post_id):
         comments = graph.match((post, None), r_type=RelationEnum.HasComment.value).all()
         comments_list = []
         for comment in comments:
-            comment_data = {
-                "id": comment.end_node.identity,
-                "content": comment.end_node["content"],
-                "created_at": comment.end_node["created_at"]
-            }
-            comments_list.append(comment_data)
+            comments_list.append(format_comment(comment.end_node))
         return jsonify(comments_list)
     return jsonify({"message": "Post not found"}), 404
 
@@ -54,24 +50,14 @@ def get_all_comments():
     comments = graph.nodes.match(NodeEnum.Commentaire.value).all()
     comments_list = []
     for comment in comments:
-        comment_data = {
-            "id": comment.identity,
-            "content": comment["content"],
-            "created_at": comment["created_at"]
-        }
-        comments_list.append(comment_data)
+        comments_list.append(format_comment(comment))
     return jsonify(comments_list)
 
 @commentaires_bp.route('/comments/<int:comment_id>', methods=['GET'])
 def get_comment(comment_id):
     comment = node_exists(graph, comment_id, NodeEnum.Commentaire)
     if comment:
-        comment_data = {
-            "id": comment.identity,
-            "content": comment["content"],
-            "created_at": comment["created_at"]
-        }
-        return jsonify(comment_data)
+        return jsonify(format_comment(comment))
     return jsonify({"message": "Comment not found"}), 404
 
 @commentaires_bp.route('/comments/<int:comment_id>', methods=['PUT'])

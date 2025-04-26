@@ -5,6 +5,7 @@ from constantes.relation import RelationEnum
 from database.config import graph
 from utils.node import node_exists
 from utils.relations import create_relation, delete_relation
+from utils.format import format_user
 
 users_bp = Blueprint('users', __name__)
 
@@ -13,13 +14,7 @@ def get_users():
     users = graph.nodes.match(NodeEnum.Utilisateur.value).all()
     users_list = []
     for user in users:
-        user_data = {
-            "id": user.identity,
-            "name": user["name"],
-            "email": user["email"],
-            "created_at": user["created_at"]
-        }
-        users_list.append(user_data)
+        users_list.append(format_user(user))
     return jsonify(users_list)
 
 @users_bp.route('/users', methods=['POST'])
@@ -33,13 +28,7 @@ def create_user():
 def get_user(user_id):
     user = node_exists(graph, user_id, NodeEnum.Utilisateur)
     if user:
-        user_data = {
-            "id": user.identity,
-            "name": user["name"],
-            "email": user["email"],
-            "created_at": user["created_at"]
-        }
-        return jsonify(user_data)
+        return jsonify(format_user(user))
     return jsonify({"message": "User not found"}), 404
 
 @users_bp.route('/users/<int:user_id>', methods=['PUT'])
@@ -68,13 +57,7 @@ def get_friends(user_id):
         friends = graph.match((user,), r_type=RelationEnum.Friend.value).all()
         friends_list = []
         for friend in friends:
-            friend_data = {
-                "id": friend.end_node.identity,
-                "name": friend.end_node["name"],
-                "email": friend.end_node["email"],
-                "created_at": friend.end_node["created_at"]
-            }
-            friends_list.append(friend_data)
+            friends_list.append(format_user(friend.end_node))
         return jsonify(friends_list)
     return jsonify({"message": "User not found"}), 404
 

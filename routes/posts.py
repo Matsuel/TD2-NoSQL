@@ -5,6 +5,7 @@ from constantes.relation import RelationEnum
 from database.config import graph
 from utils.relations import create_relation, delete_relation
 from utils.node import node_exists
+from utils.format import format_post
 
 posts_bp = Blueprint('posts', __name__)
 
@@ -13,13 +14,7 @@ def get_posts():
     posts = graph.nodes.match(NodeEnum.Post.value).all()
     posts_list = []
     for post in posts:
-        post_data = {
-            "id": post.identity,
-            "title": post["title"],
-            "content": post["content"],
-            "created_at": post["created_at"]
-        }
-        posts_list.append(post_data)
+        posts_list.append(format_post(post))
     return jsonify(posts_list)
 
 
@@ -27,13 +22,7 @@ def get_posts():
 def get_post(post_id):
     post = node_exists(graph, post_id, NodeEnum.Post)
     if post:
-        post_data = {
-            "id": post.identity,
-            "title": post["title"],
-            "content": post["content"],
-            "created_at": post["created_at"]
-        }
-        return jsonify(post_data)
+        return jsonify(format_post(post))
     return jsonify({"message": "Post not found"}), 404
 
 @posts_bp.route('/users/<int:user_id>/posts', methods=['GET'])
@@ -43,13 +32,7 @@ def get_user_posts(user_id):
         posts = graph.match((user, None), r_type=RelationEnum.Created.value).all()
         posts_list = []
         for post in posts:
-            post_data = {
-                "id": post.end_node.identity,
-                "title": post.end_node["title"],
-                "content": post.end_node["content"],
-                "created_at": post.end_node["created_at"]
-            }
-            posts_list.append(post_data)
+            posts_list.append(format_post(post.end_node))
         return jsonify(posts_list)
     return jsonify({"message": "User not found"}), 404
 
