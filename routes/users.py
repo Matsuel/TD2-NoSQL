@@ -2,9 +2,8 @@ from flask import Blueprint, jsonify, request
 from models.utilisateur import Utilisateur
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
-from py2neo import Graph, Relationship
-
-graph = Graph("bolt://localhost:7687", auth=("neo4j", "password"))
+from py2neo import Relationship
+from database.config import graph
 
 users_bp = Blueprint('users', __name__)
 

@@ -1,6 +1,5 @@
 from datetime import datetime
 from py2neo import Node, Graph
-from database.config import connect_to_neo4j
 from constantes.node import NodeEnum
 
 class Commentaire:

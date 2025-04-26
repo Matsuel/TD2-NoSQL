@@ -1,12 +1,11 @@
 from flask import Blueprint, jsonify, request
 from models.post import Post
-from py2neo import Graph, Relationship
+from py2neo import Relationship
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
+from database.config import graph
 
 posts_bp = Blueprint('posts', __name__)
-
-graph = Graph("bolt://localhost:7687", auth=("neo4j", "password"))
 
 @posts_bp.route('/posts', methods=['GET'])
 def get_posts():

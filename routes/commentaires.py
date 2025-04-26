@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify
 from models.commentaire import Commentaire
-from py2neo import Graph, Relationship
+from py2neo import Relationship
 from constantes.node import NodeEnum
 from constantes.relation import RelationEnum
+from database.config import graph
 
 commentaires_bp = Blueprint('commentaires', __name__)
-
-graph = Graph("bolt://localhost:7687", auth=("neo4j", "password"))
 
 @commentaires_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
 def get_comments(post_id):
